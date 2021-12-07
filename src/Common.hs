@@ -1,5 +1,6 @@
 module Common (
     LineParser (..), 
+    split,
     readLineParser,
     readInputFile,
     executeAndPrintResults
@@ -7,9 +8,17 @@ module Common (
 
 import System.IO
 import Data.Maybe
+import Parser
 
 -- A basic line parser
 type LineParser a = String -> (Maybe a)
+
+-- Splits a string based on the specified character
+split :: Char -> String -> [String]
+split c xs = case dropWhile (== c) xs of
+                ""  -> []
+                xs' -> w : split c xs'' where
+                        (w, xs'') = break (== c) xs'
 
 -- A simple line parser for types that implement read
 readLineParser :: (Read a) => String -> (Maybe a)
