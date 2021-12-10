@@ -86,6 +86,7 @@ solvePart2 xss = product (take 3 (reverse (sort (map computeBasinSize basins))))
     basins       = map (computeBasin xss) basinBottoms
     basinBottoms = filterFromJust (concat (convolveMap basinBottom xss))
 
+-- The day 9 puzzle
 day9Solver :: IO [Int]
 day9Solver = do
     input <- readInputs
