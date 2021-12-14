@@ -19,10 +19,10 @@ type Origami = ([Dot], [Fold])
 inputFilePath :: FilePath
 inputFilePath = "res/day13_input.txt"
 
--- A simple digit parser
-foldLineParser :: String -> (Maybe Origami)
-foldLineParser [] = Nothing
-foldLineParser s  = case head s of 
+-- A simple origami parser
+origamiLineParser :: String -> (Maybe Origami)
+origamiLineParser [] = Nothing
+origamiLineParser s  = case head s of 
     'f'         -> Just $ ([], [(x,y)]) where
         x    = if (s' !! 0) == "x" then read (s' !! 1) else 0
         y    = if (s' !! 0) == "y" then read (s' !! 1) else 0
@@ -35,7 +35,7 @@ foldLineParser s  = case head s of
 -- Reads the inputs from the designated input file
 readInputs :: IO Origami
 readInputs = do
-    inputs <- readInputFile inputFilePath foldLineParser
+    inputs <- readInputFile inputFilePath origamiLineParser
     return $ foldr (\(p0, f0) (p, f) -> (p0++p, f0++f)) ([], []) inputs
 
 -- A test input
