@@ -137,9 +137,9 @@ maxTuple :: Ord a => (a, a) -> a
 maxTuple (x, y) | x > y     = x
                 | otherwise = y
 
--- #TODO : This needs fixing - this method will break under certain occurrences of patterns, e.g. 'NCNN' or 'NNCN' whereby the count for 'N' will be incorrectly reported as '2' instead of '3', or
--- 'NCN' where the count for 'N' will be ' 1'. It just so happens the puzzle input and test patterns do not exhibit such patterns and so yield the correct count.
--- This can either be solved by keeping a counter of each character, or assuming only the first and last letters are the only ones that do not get duplicated (i.e. appear twice), while all other pairs appear twice.
+-- #TODO : This needs fixing - this method will break under certain occurrences of patterns, in particular if the first and last characters of the template are the same (e.g. 'NCNN' or 'NNCN' whereby the count for 'N' will be incorrectly reported as '2' instead of '3', or
+-- 'NCN' where the count for 'N' will be ' 1'). It just so happens the puzzle input and test patterns do not exhibit such patterns and so yield the correct count but it would be nice to account for this :
+-- The first and last letters are the only ones that do not get duplicated (i.e. appear twice), while all other pairs appear twice.
 -- Counts the number of times the specified element occurs in the template
 countElements' :: BucketTemplate -> Char -> Integer
 countElements' ts c = maxTuple (foldr (countElements'' c) (0, 0) ts) where

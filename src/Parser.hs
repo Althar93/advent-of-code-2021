@@ -1,45 +1,72 @@
 module Parser (
         Parser(..),
-        runParser
+        Alternative(..),
+        runParser,
+        parseChar,
+        pSelect,
+        pIterate,
+        pRepeat
     ) where
 
--- A basic generic parser
-newtype Parser a = Parser { parse :: String -> (Maybe a, String) }
+import Control.Applicative
+import Debug.Trace
 
-fromJust :: Maybe a -> a
-fromJust Nothing    = error "Undefined"
-fromJust (Just a)   = a
+-- A mini parser
+newtype Parser a = Parser { parse :: String -> [(a, String)] }
 
+-- Make the Parser an instance of Functor so we may map things
 instance Functor Parser where
-    fmap f p = Parser (\s -> (\(ma, s') -> (Just (f (fromJust ma)), s')) (parse p s))
+    -- (a -> b) -> Parser a -> Parser b
+    fmap f (Parser p) = Parser $ \s -> [(f a, s') | (a, s') <- p s]
 
+-- Make the Parser an instance of Applicative so we may lift it
 instance Applicative Parser where
+    -- a -> Parser a
     pure = return
-    -- #TODO : My brain hurts... can this be written in a more legible way?
-    pf <*> p = Parser (\s -> (\(ma, s') -> (\(mf, s'') -> (Just ((fromJust mf) (fromJust ma)), s'')) (parse pf s')) (parse p s))
+    -- Parser (a -> b) -> Parser a -> Parser b
+    (<*>) (Parser ab) (Parser b) = Parser $ \s -> [(f a, s'') | (f, s') <- ab s, (a, s'') <- b s']
 
-unit :: a -> Parser a
-unit a = Parser (\s -> (Just a, s))
-
-bind :: Parser a -> (a -> Parser b) -> Parser b
-bind p f = Parser (\s -> (\(ma, s') -> parse (f (fromJust ma)) s') (parse p s))
-
--- Make an instance of Monad so we can chain parsers together
+-- Make the Parser an instance of Monad so that we may use the 'do' notation
 instance Monad Parser where
-    return = unit
-    (>>=)  = bind
+    -- a -> Parser a
+    return a = Parser $ \s -> [(a, s)]
+    -- Parser a -> (a -> Parser b) -> Parser b
+    (>>=) p f = Parser $ \s -> concatMap (\(a, s') -> parse (f a) s') (parse p s)
+
+-- Make the Parser an instance of Alternative so that we may process choice
+instance Alternative Parser where
+    -- Parser a
+    empty = trace "empty" Parser $ \s -> []
+    -- Parser a -> Parser a -> Parser a 
+    (<|>) p p' = Parser $ \s ->
+        case parse p s of 
+            []  -> parse p' s
+            r   -> r
 
 -- Runs the parser
-runParser :: Parser a -> String -> Maybe a
-runParser p s = x where 
-    (x, _) = parse p s
+runParser :: Parser a -> String -> a
+runParser p s = case parse p s of 
+    [(r, _)] -> r
+    _        -> error "Failed to parse string"
 
--- Parses a single item (char)
-item :: Parser Char
-item = Parser $ \s ->
-    case s of
-        []      -> (Nothing, [])
-        (c:cs)  -> (Just c, cs)
+-- Parses a single char
+parseChar :: Parser Char
+parseChar = Parser $ \s -> case s of
+    []      -> []
+    (c:s')  -> [(c, s')]
 
-satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = item `bind` \c -> if p c then unit c else (Parser (\s -> (Nothing, s)))
+-- Selects either using parser a or b depending on the state of the flag
+pSelect :: Bool -> Parser a -> Parser b -> Parser (Either a b)
+pSelect True pa _   = fmap Left pa
+pSelect False _ pb  = fmap Right pb
+
+-- Runs the parser until it can no longer do so
+pIterate :: Parser a -> Parser [a]
+pIterate p = many p
+
+-- Runs the parser a number of times and returns an array of results
+pRepeat :: Int -> Parser a -> Parser [a]
+pRepeat 0 _ = pure []
+pRepeat n p = do
+    a <- p
+    fmap (a:) (pRepeat (n - 1) p)

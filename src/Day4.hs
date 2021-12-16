@@ -1,7 +1,6 @@
 module Day4 (day4Solver) where
 
 import Data.List (transpose)
-import Parser
 
 -- A bingo board
 type Board = [[(Int, Bool)]]
