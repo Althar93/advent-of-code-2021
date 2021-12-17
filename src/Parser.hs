@@ -2,14 +2,19 @@ module Parser (
         Parser(..),
         Alternative(..),
         runParser,
+        parseItem,
         parseChar,
+        parseDigit,
+        parseString,
+        parseInt,
+        parseSpaces,
         pSelect,
         pIterate,
         pRepeat
     ) where
 
 import Control.Applicative
-import Debug.Trace
+import Data.Char
 
 -- A mini parser
 newtype Parser a = Parser { parse :: String -> [(a, String)] }
@@ -36,7 +41,7 @@ instance Monad Parser where
 -- Make the Parser an instance of Alternative so that we may process choice
 instance Alternative Parser where
     -- Parser a
-    empty = trace "empty" Parser $ \s -> []
+    empty = Parser $ \s -> []
     -- Parser a -> Parser a -> Parser a 
     (<|>) p p' = Parser $ \s ->
         case parse p s of 
@@ -49,11 +54,46 @@ runParser p s = case parse p s of
     [(r, _)] -> r
     _        -> error "Failed to parse string"
 
--- Parses a single char
-parseChar :: Parser Char
-parseChar = Parser $ \s -> case s of
+-- Parses a single item
+parseItem :: Parser Char
+parseItem = Parser $ \s -> case s of
     []      -> []
     (c:s')  -> [(c, s')]
+
+-- Parses the single char
+parseChar :: Char -> Parser Char
+parseChar c = Parser $ \s -> case s of
+    []          -> []
+    (c':s)      -> if c == c' 
+                    then [(c, s)] 
+                    else []
+
+-- Parses a single digit
+parseDigit :: Parser Char
+parseDigit = Parser $ \s -> case s of
+    []          -> []
+    (c:s)       -> if isDigit c 
+                    then [(c, s)]
+                    else []
+
+-- Parses the given string
+parseString :: String -> Parser String
+parseString []      = pure []
+parseString (c:s)   = do
+    parseChar c
+    parseString s
+    return (c:s)
+
+-- Parses an int
+parseInt :: Parser Int
+parseInt = do
+    s   <- parseString "-" <|> return []
+    ds  <- some parseDigit
+    return $ read (s ++ ds)
+
+-- Parses any space(s)
+parseSpaces :: Parser String
+parseSpaces = many (parseChar ' ')
 
 -- Selects either using parser a or b depending on the state of the flag
 pSelect :: Bool -> Parser a -> Parser b -> Parser (Either a b)

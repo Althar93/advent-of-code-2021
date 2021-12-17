@@ -65,9 +65,9 @@ binStringToInt s = binStringToInt' 0 (reverse s) where
     binStringToInt' n (c:s) = (if (c == '1') then 2^n else 0) + (binStringToInt' (n + 1) s)
 
 -- Parses an integer with the specified number of bits
-parseInt :: Int -> Parser Int
-parseInt 0 = error "Needs to specify >0 bits"
-parseInt n = Parser $ \s -> case s of 
+parseBinInt :: Int -> Parser Int
+parseBinInt 0 = error "Needs to specify >0 bits"
+parseBinInt n = Parser $ \s -> case s of 
     [] -> []
     s' -> [(binStringToInt (take n s'), drop n s')]
 
@@ -101,8 +101,8 @@ parseLiteral = do
 -- Parses a packet
 parsePacket :: Parser Packet
 parsePacket = do
-    pVersion  <- parseInt 3
-    pTypeID   <- parseInt 3
+    pVersion  <- parseBinInt 3
+    pTypeID   <- parseBinInt 3
     pContents <- pSelect (pTypeID == 4) parseLiteral parseSubPackets
     return Packet { packetVersion = pVersion, packetTypeID = (intToPacketTypeID pTypeID), packetContents = pContents}
 
@@ -110,10 +110,10 @@ parsePacket = do
 parseSubPackets :: Parser [Packet]
 parseSubPackets = do
     lengthTypeID <- parseBit
-    eitherLength <- pSelect (lengthTypeID == False) (parseInt 15) (parseInt 11)
+    eitherLength <- pSelect (lengthTypeID == False) (parseBinInt 15) (parseBinInt 11)
     case eitherLength of
         Left totalLengthInBits -> do
-            bits <- pRepeat totalLengthInBits parseChar 
+            bits <- pRepeat totalLengthInBits parseItem 
             return $ runParser (pIterate parsePacket) bits
         Right numberOfSubPackets -> do 
             pRepeat numberOfSubPackets parsePacket
