@@ -8,6 +8,7 @@ module Parser (
         parseString,
         parseInt,
         parseSpaces,
+        pEither,
         pSelect,
         pIterate,
         pRepeat
@@ -62,19 +63,21 @@ parseItem = Parser $ \s -> case s of
 
 -- Parses the single char
 parseChar :: Char -> Parser Char
-parseChar c = Parser $ \s -> case s of
-    []          -> []
-    (c':s)      -> if c == c' 
-                    then [(c, s)] 
-                    else []
+parseChar c = Parser $ \s -> 
+    case s of
+        []          -> []
+        (c':s)      -> if c == c' 
+                        then [(c, s)] 
+                        else []
 
 -- Parses a single digit
 parseDigit :: Parser Char
-parseDigit = Parser $ \s -> case s of
-    []          -> []
-    (c:s)       -> if isDigit c 
-                    then [(c, s)]
-                    else []
+parseDigit = Parser $ \s -> 
+    case s of
+        []          -> []
+        (c:s)       -> if isDigit c 
+                        then [(c, s)]
+                        else []
 
 -- Parses the given string
 parseString :: String -> Parser String
@@ -94,6 +97,10 @@ parseInt = do
 -- Parses any space(s)
 parseSpaces :: Parser String
 parseSpaces = many (parseChar ' ')
+
+-- Runs the parser and tries to populate an either type, first populating the left and then the right if the first fails
+pEither :: Parser a -> Parser b -> Parser (Either a b)
+pEither pa pb = fmap Left pa <|> fmap Right pb
 
 -- Selects either using parser a or b depending on the state of the flag
 pSelect :: Bool -> Parser a -> Parser b -> Parser (Either a b)

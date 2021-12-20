@@ -37,7 +37,8 @@ executable advent-of-code2021
                        Day14,
                        Day15,
                        Day16,
-                       Day17
+                       Day17,
+                       Day18
 
   ghc-options:         -O3 -Wall
 
